@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { authMiddleware } from "../packages/api/src/middleware/auth";
-import { productsRouter } from "../packages/api/src/routes/products";
-import { categoriesRouter } from "../packages/api/src/routes/categories";
+import { authMiddleware } from "../packages/api/src/middleware/auth.js";
+import { productsRouter } from "../packages/api/src/routes/products.js";
+import { categoriesRouter } from "../packages/api/src/routes/categories.js";
 
 const app = new Hono();
 
