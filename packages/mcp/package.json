@@ -1,0 +1,22 @@
+{
+  "name": "@agora/mcp",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "agora-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@agora/sdk": "*",
+    "@modelcontextprotocol/sdk": "^1",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5.7"
+  }
+}
