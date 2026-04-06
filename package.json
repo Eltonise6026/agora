@@ -1,6 +1,7 @@
 {
   "name": "agora",
   "private": true,
+  "type": "module",
   "packageManager": "npm@11.12.1",
   "workspaces": [
     "packages/*"
