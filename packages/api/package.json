@@ -1,0 +1,23 @@
+{
+  "name": "@agora/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@agora/db": "*",
+    "hono": "^4",
+    "drizzle-orm": "^0.39"
+  },
+  "devDependencies": {
+    "tsx": "^4",
+    "typescript": "^5.7",
+    "vitest": "^3",
+    "@types/node": "^22"
+  }
+}
