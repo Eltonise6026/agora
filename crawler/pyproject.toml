@@ -1,0 +1,21 @@
+[project]
+name = "agora-crawler"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    "scrapy>=2.11",
+    "playwright>=1.48",
+    "scrapy-playwright>=0.0.40",
+    "psycopg2-binary>=2.9",
+    "pgvector>=0.3",
+    "openai>=1.50",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
