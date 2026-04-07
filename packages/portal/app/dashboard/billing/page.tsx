@@ -56,7 +56,7 @@ export default function BillingPage() {
               </button>
             )}
             {plan.tier === "enterprise" && (
-              <a href="mailto:ceo@bentolabs.co.uk?subject=Agora Enterprise"
+              <a href="mailto:agora@bentolabs.co.uk?subject=Agora Enterprise"
                 className="w-full block text-center bg-surface border border-border hover:border-[#3f3f46] text-[#e5e5e5] py-2 rounded-lg text-sm font-medium transition-colors">
                 Contact Us
               </a>
