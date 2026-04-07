@@ -8,6 +8,11 @@ import { categoriesRouter } from "../packages/api/src/routes/categories.js";
 import { storesRouter } from "../packages/api/src/routes/stores.js";
 import { registryRouter } from "../packages/api/src/routes/registry.js";
 import { adapterRouter } from "../packages/api/src/routes/adapter.js";
+import { commerceRouter } from "../packages/api/src/routes/commerce.js";
+import { db } from "../packages/db/src/index.js";
+import { checkouts, cartItems, products, stores, paymentMethods, carts, orders } from "../packages/db/src/schema.js";
+import { eq } from "drizzle-orm";
+import crypto from "crypto";
 
 const app = new Hono();
 
@@ -758,6 +763,21 @@ app.get("/", (c) => {
         <span class="desc">Protocol manifest</span>
       </div>
       <div class="endpoint">
+        <span class="method">POST</span>
+        <span class="path">/v1/cart</span>
+        <span class="desc">Create cart</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">POST</span>
+        <span class="path">/v1/checkout</span>
+        <span class="desc">Initiate checkout</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="path">/v1/orders</span>
+        <span class="desc">List orders</span>
+      </div>
+      <div class="endpoint">
         <span class="method">GET</span>
         <span class="path">/playground</span>
         <span class="desc">Interactive API playground</span>
@@ -778,6 +798,7 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/v1/products", productsRouter);
 app.route("/v1/categories", categoriesRouter);
 app.route("/v1/stores", storesRouter);
+app.route("/v1", commerceRouter);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);

@@ -6,6 +6,7 @@ import { categoriesRouter } from "./routes/categories.js";
 import { storesRouter } from "./routes/stores.js";
 import { registryRouter } from "./routes/registry.js";
 import { adapterRouter } from "./routes/adapter.js";
+import { commerceRouter } from "./routes/commerce.js";
 
 const app = new Hono();
 
@@ -23,5 +24,6 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/v1/products", productsRouter);
 app.route("/v1/categories", categoriesRouter);
 app.route("/v1/stores", storesRouter);
+app.route("/v1", commerceRouter);
 
 export default app;
