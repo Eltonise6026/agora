@@ -95,7 +95,7 @@ adapterRouter.post("/shopify", async (c) => {
       source: "native",
       capabilities: manifest.capabilities,
       status: "active",
-    });
+    } as any);
   } else {
     await db.update(stores)
       .set({
