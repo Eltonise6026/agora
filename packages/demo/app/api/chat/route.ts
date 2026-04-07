@@ -56,7 +56,7 @@ function getModels() {
 
   // Groq first (working quota, fast inference)
   if (process.env.GROQ_API_KEY) {
-    models.push(groq("llama-3.3-70b-versatile"));
+    models.push(groq("meta-llama/llama-4-scout-17b-16e-instruct"));
   }
 
   // Gemini fallback
