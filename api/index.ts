@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { authMiddleware } from "../packages/api/src/middleware/auth.js";
+import { analyticsMiddleware } from "../packages/api/src/middleware/analytics.js";
 import { productsRouter } from "../packages/api/src/routes/products.js";
 import { categoriesRouter } from "../packages/api/src/routes/categories.js";
 import { storesRouter } from "../packages/api/src/routes/stores.js";
@@ -52,6 +53,7 @@ app.get("/.well-known/agora.json", (c) => {
 });
 
 app.use("/v1/*", authMiddleware);
+app.use("/v1/products/*", analyticsMiddleware);
 
 app.get("/", (c) => {
   return c.html(`<!DOCTYPE html>

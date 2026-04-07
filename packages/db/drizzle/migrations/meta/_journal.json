@@ -22,6 +22,13 @@
       "when": 1775587838136,
       "tag": "0002_flaky_pixie",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775591968413,
+      "tag": "0003_naive_whirlwind",
+      "breakpoints": true
     }
   ]
 }

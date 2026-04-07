@@ -6,6 +6,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
   integer,
   pgEnum,
   vector,
@@ -38,6 +39,24 @@ export const stores = pgTable(
   (table) => [
     index("idx_stores_source").on(table.source),
     index("idx_stores_status").on(table.status),
+  ]
+);
+
+export const storeAnalytics = pgTable(
+  "store_analytics",
+  {
+    id: serial("id").primaryKey(),
+    storeId: text("store_id")
+      .notNull()
+      .references(() => stores.id, { onDelete: "cascade" }),
+    date: timestamp("date", { mode: "date" }).notNull().defaultNow(),
+    queryCount: integer("query_count").notNull().default(0),
+    productViews: integer("product_views").notNull().default(0),
+  },
+  (table) => [
+    uniqueIndex("idx_store_analytics_store_date").on(table.storeId, table.date),
+    index("idx_store_analytics_store").on(table.storeId),
+    index("idx_store_analytics_date").on(table.date),
   ]
 );
 
