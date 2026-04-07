@@ -1,27 +1,15 @@
-"""Crawl new stores only — no embeddings, fast indexing."""
+"""Bulk crawl Shopify stores from curated list — seeds stores table, links products."""
 import os
 import sys
 import json
 import hashlib
 from datetime import datetime, timezone
+from pathlib import Path
 import urllib.request
+import re
 
 import psycopg2
 from psycopg2.extras import Json
-
-NEW_STORES = [
-    "https://www.tentree.com",
-    "https://www.taylorstitch.com",
-    "https://www.greysonclothiers.com",
-    "https://www.girlfriend.com",
-    "https://www.ridgewallet.com",
-    "https://www.puravidabracelets.com",
-    "https://hautehijab.com",
-    "https://www.nativecos.com",
-    "https://www.brooklinen.com",
-    "https://www.deathwishcoffee.com",
-    "https://colourpop.com",
-]
 
 
 def generate_store_id(url: str) -> str:
@@ -29,15 +17,23 @@ def generate_store_id(url: str) -> str:
     return f"str_{h}"
 
 
-def generate_product_id(source, source_url):
-    short_hash = hashlib.sha256(f"{source}:{source_url}".encode()).hexdigest()[:12]
-    return f"agr_{short_hash}"
+def generate_product_id(source: str, source_url: str) -> str:
+    h = hashlib.sha256(f"{source}:{source_url}".encode()).hexdigest()[:12]
+    return f"agr_{h}"
 
 
-def fetch_products(store_url):
+def strip_html(text: str) -> str:
+    if not text:
+        return ""
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = text.replace("&nbsp;", " ").replace("&amp;", "&")
+    return " ".join(text.split())[:2000]
+
+
+def fetch_products(store_url: str) -> list[dict]:
     products = []
     page = 1
-    while page <= 20:  # Cap at 1000 products per store
+    while page <= 20:
         url = f"{store_url.rstrip('/')}/products.json?limit=50&page={page}"
         try:
             req = urllib.request.Request(url, headers={"User-Agent": "Agora Crawler/0.1"})
@@ -56,28 +52,24 @@ def fetch_products(store_url):
     return products
 
 
-def strip_html(text):
-    if not text:
-        return ""
-    import re
-    text = re.sub(r'<[^>]+>', ' ', text)
-    text = text.replace('&nbsp;', ' ').replace('&amp;', '&')
-    return ' '.join(text.split())[:2000]
-
-
 def main():
     db_url = os.environ.get("DATABASE_URL")
     if not db_url:
         print("ERROR: DATABASE_URL not set")
         sys.exit(1)
 
+    stores_file = Path(__file__).parent / "crawler" / "data" / "shopify_stores.json"
+    with open(stores_file) as f:
+        store_list = json.load(f)["stores"]
+
     conn = psycopg2.connect(db_url)
     conn.autocommit = True
     total = 0
 
-    for store_url in NEW_STORES:
+    for store_info in store_list:
+        store_url = store_info["url"]
+        store_name = store_info["name"]
         store_id = generate_store_id(store_url)
-        store_name = store_url.rstrip("/").split("//")[-1]
 
         # Seed stores table
         with conn.cursor() as cur:
@@ -90,7 +82,7 @@ def main():
                 (store_id, store_name, store_url, Json({})),
             )
 
-        print(f"\nCrawling {store_url}...")
+        print(f"\nCrawling {store_name} ({store_url})...")
         raw = fetch_products(store_url)
         print(f"  Found {len(raw)} products")
 
@@ -153,8 +145,6 @@ def main():
 
             total += 1
             store_product_count += 1
-            if total % 50 == 0:
-                print(f"  Indexed {total} products total...")
 
         # Update store product count
         with conn.cursor() as cur:
@@ -163,10 +153,10 @@ def main():
                 (store_product_count, datetime.now(timezone.utc), store_id),
             )
 
-        print(f"  Indexed {store_product_count} products for {store_url}")
+        print(f"  Indexed {store_product_count} products for {store_name}")
 
     conn.close()
-    print(f"\nDone! Indexed {total} new products.")
+    print(f"\nDone! Indexed {total} products from {len(store_list)} stores.")
 
 
 if __name__ == "__main__":

@@ -4,10 +4,53 @@ import { cors } from "hono/cors";
 import { authMiddleware } from "../packages/api/src/middleware/auth.js";
 import { productsRouter } from "../packages/api/src/routes/products.js";
 import { categoriesRouter } from "../packages/api/src/routes/categories.js";
+import { storesRouter } from "../packages/api/src/routes/stores.js";
 
 const app = new Hono();
 
 app.use("*", cors());
+
+app.get("/.well-known/agora.json", (c) => {
+  return c.json({
+    $schema: "https://protocol.agora.dev/v1/schema.json",
+    version: "1.0",
+    store: {
+      name: "Agora",
+      url: "https://agora-ecru-chi.vercel.app",
+      description: "The agent-friendly commerce layer for the internet",
+      categories: [
+        "apparel",
+        "shoes",
+        "accessories",
+        "home",
+        "food",
+        "beauty",
+        "electronics",
+      ],
+      currency: "USD",
+      locale: "en-US",
+    },
+    capabilities: {
+      products: "/v1/products/search?q=*",
+      product: "/v1/products/{id}",
+      search: "/v1/products/search",
+    },
+    auth: {
+      type: "bearer",
+      registration: "https://portal-opal-two.vercel.app",
+    },
+    rate_limits: {
+      requests_per_minute: 60,
+      burst: 10,
+    },
+    data_policy: {
+      cache_ttl: 3600,
+      attribution_required: false,
+      commercial_use: true,
+    },
+  });
+});
+
 app.use("/v1/*", authMiddleware);
 
 app.get("/", (c) => {
@@ -148,6 +191,26 @@ app.get("/", (c) => {
         <span class="path">/v1/categories</span>
         <span class="desc">Browse categories</span>
       </div>
+      <div class="endpoint">
+        <span class="method">POST</span>
+        <span class="path">/v1/stores/register</span>
+        <span class="desc">Register a store</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="path">/v1/stores</span>
+        <span class="desc">List stores</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="path">/v1/stores/:id</span>
+        <span class="desc">Store details</span>
+      </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="path">/.well-known/agora.json</span>
+        <span class="desc">Protocol manifest</span>
+      </div>
     </div>
     <div class="links">
       <a href="https://github.com/rbtbuilds/agora">GitHub</a>
@@ -162,6 +225,7 @@ app.get("/", (c) => {
 app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/v1/products", productsRouter);
 app.route("/v1/categories", categoriesRouter);
+app.route("/v1/stores", storesRouter);
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
