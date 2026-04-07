@@ -10,3 +10,5 @@ __pycache__/
 .scrapy/
 .vercel
 .env*.local
+.superpowers/
+.DS_Store
