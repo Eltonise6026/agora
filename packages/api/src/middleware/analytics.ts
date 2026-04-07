@@ -1,6 +1,7 @@
 import type { MiddlewareHandler } from "hono";
 import { db, products } from "@agora/db";
 import { eq, sql, inArray } from "drizzle-orm";
+import { dispatchWebhooks } from "../lib/webhook-dispatcher.js";
 
 export const analyticsMiddleware: MiddlewareHandler = async (c, next) => {
   await next();
@@ -33,6 +34,8 @@ async function trackAnalytics(path: string, res: Response) {
       .from(products)
       .where(inArray(products.id, productIds));
 
+    // Group product IDs by store for webhook dispatching
+    const storeProductMap = new Map<string, string[]>();
     for (const { storeId } of storeResults) {
       if (!storeId) continue;
       await db.execute(sql`
@@ -41,6 +44,34 @@ async function trackAnalytics(path: string, res: Response) {
         ON CONFLICT ON CONSTRAINT idx_store_analytics_store_date
         DO UPDATE SET query_count = store_analytics.query_count + 1
       `);
+      storeProductMap.set(storeId, []);
+    }
+
+    // Map product IDs to their stores for webhook payload
+    if (storeProductMap.size > 0) {
+      const productStoreRows = await db
+        .select({ id: products.id, storeId: products.storeId })
+        .from(products)
+        .where(inArray(products.id, productIds));
+
+      for (const { id, storeId } of productStoreRows) {
+        if (storeId && storeProductMap.has(storeId)) {
+          storeProductMap.get(storeId)!.push(id);
+        }
+      }
+
+      const query: string = body?.meta?.query ?? "";
+      for (const [storeId, matchedIds] of storeProductMap) {
+        dispatchWebhooks({
+          event: "product.searched",
+          store_id: storeId,
+          data: {
+            query,
+            products_matched: matchedIds.length,
+            product_ids: matchedIds,
+          },
+        }).catch((err) => console.error("Webhook dispatch error:", err));
+      }
     }
   } else if (/^\/v1\/products\/[^/]+$/.test(path) && !path.includes("similar")) {
     // Product detail view
@@ -62,5 +93,11 @@ async function trackAnalytics(path: string, res: Response) {
       ON CONFLICT ON CONSTRAINT idx_store_analytics_store_date
       DO UPDATE SET product_views = store_analytics.product_views + 1
     `);
+
+    dispatchWebhooks({
+      event: "product.viewed",
+      store_id: storeId,
+      data: { product_id: productId },
+    }).catch((err) => console.error("Webhook dispatch error:", err));
   }
 }

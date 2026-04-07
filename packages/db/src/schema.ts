@@ -207,3 +207,21 @@ export const usageLogs = pgTable(
     index("idx_usage_logs_timestamp").on(table.timestamp),
   ]
 );
+
+export const webhooks = pgTable(
+  "webhooks",
+  {
+    id: text("id").primaryKey(),
+    storeId: text("store_id")
+      .notNull()
+      .references(() => stores.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    events: jsonb("events").$type<string[]>().notNull(), // ["product.searched", "product.viewed"]
+    secret: text("secret").notNull(), // for HMAC signature verification
+    active: integer("active").notNull().default(1), // 1 = active, 0 = paused
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("idx_webhooks_store").on(table.storeId),
+  ]
+);

@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { db, stores } from "@agora/db";
+import { db, stores, webhooks } from "@agora/db";
 import { eq, desc, sql } from "drizzle-orm";
 import crypto from "node:crypto";
 
@@ -134,6 +134,59 @@ storesRouter.get("/:id", async (c) => {
   }
 
   return c.json({ data: result[0] });
+});
+
+// POST /v1/stores/:storeId/webhooks
+storesRouter.post("/:storeId/webhooks", async (c) => {
+  const storeId = c.req.param("storeId");
+  let body: { url?: string; events?: string[] };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: { code: "BAD_REQUEST", message: "Invalid JSON" } }, 400);
+  }
+
+  if (!body.url || !body.events?.length) {
+    return c.json({ error: { code: "BAD_REQUEST", message: "url and events are required" } }, 400);
+  }
+
+  const validEvents = ["product.searched", "product.viewed", "store.registered"];
+  const invalidEvents = body.events.filter((e) => !validEvents.includes(e));
+  if (invalidEvents.length > 0) {
+    return c.json({ error: { code: "BAD_REQUEST", message: `Invalid events: ${invalidEvents.join(", ")}` } }, 400);
+  }
+
+  const id = `wh_${crypto.randomBytes(12).toString("hex")}`;
+  const secret = `whsec_${crypto.randomBytes(24).toString("hex")}`;
+
+  await db.insert(webhooks).values({
+    id,
+    storeId,
+    url: body.url,
+    events: body.events,
+    secret,
+  });
+
+  return c.json({
+    data: { id, storeId, url: body.url, events: body.events, secret, active: 1 },
+    meta: { message: "Save the secret — it won't be shown again" },
+  }, 201);
+});
+
+// GET /v1/stores/:storeId/webhooks
+storesRouter.get("/:storeId/webhooks", async (c) => {
+  const storeId = c.req.param("storeId");
+  const hooks = await db.select().from(webhooks).where(eq(webhooks.storeId, storeId));
+  return c.json({
+    data: hooks.map((h) => ({ ...h, secret: "whsec_****" })),
+  });
+});
+
+// DELETE /v1/stores/:storeId/webhooks/:id
+storesRouter.delete("/:storeId/webhooks/:webhookId", async (c) => {
+  const webhookId = c.req.param("webhookId");
+  await db.delete(webhooks).where(eq(webhooks.id, webhookId));
+  return c.json({ data: { deleted: true } });
 });
 
 export { storesRouter };
