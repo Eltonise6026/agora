@@ -45,6 +45,7 @@ async function keywordSearch(
   offset: number,
   page: number
 ) {
+  // Match against name and description, but rank name matches higher
   const searchCondition = or(
     ilike(products.name, `%${q}%`),
     ilike(products.description, `%${q}%`)
@@ -55,11 +56,17 @@ async function keywordSearch(
       ? and(searchCondition, ...conditions)
       : searchCondition;
 
+  // Relevance score: name match = 2, description-only match = 1
+  const relevance = sql<number>`(
+    CASE WHEN lower(${products.name}) LIKE lower(${"%" + q + "%"}) THEN 2 ELSE 0 END +
+    CASE WHEN lower(${products.description}) LIKE lower(${"%" + q + "%"}) THEN 1 ELSE 0 END
+  )`;
+
   const results = await db
     .select()
     .from(products)
     .where(where!)
-    .orderBy(desc(products.lastCrawled))
+    .orderBy(sql`${relevance} DESC`, desc(products.lastCrawled))
     .limit(perPage)
     .offset(offset);
 
