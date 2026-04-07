@@ -548,6 +548,37 @@ app.get("/openapi.json", (c) => {
   return c.json(openapiSpec);
 });
 
+app.get("/playground", (c) => {
+  const config = JSON.stringify({
+    theme: "kepler",
+    layout: "modern",
+    metadata: {
+      title: "Agora API Playground",
+    },
+    authentication: {
+      preferredSecurityScheme: "bearerAuth",
+      http: {
+        bearer: {
+          token: "",
+        },
+      },
+    },
+  });
+  return c.html(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agora API Playground</title>
+  <style>body { margin: 0; }</style>
+</head>
+<body>
+  <script id="api-reference" data-url="/openapi.json" data-configuration='${config}'></script>
+  <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+</body>
+</html>`);
+});
+
 // Public registry routes — mounted BEFORE auth middleware
 app.route("/v1/registry", registryRouter);
 
@@ -712,11 +743,17 @@ app.get("/", (c) => {
         <span class="path">/.well-known/agora.json</span>
         <span class="desc">Protocol manifest</span>
       </div>
+      <div class="endpoint">
+        <span class="method">GET</span>
+        <span class="path">/playground</span>
+        <span class="desc">Interactive API playground</span>
+      </div>
     </div>
     <div class="links">
       <a href="https://github.com/rbtbuilds/agora">GitHub</a>
       <a href="https://github.com/rbtbuilds/agora#sdk-usage">SDK Docs</a>
       <a href="/health">Health Check</a>
+      <a href="/playground">API Playground</a>
     </div>
   </div>
 </body>
