@@ -12,3 +12,5 @@ __pycache__/
 .env*.local
 .superpowers/
 .DS_Store
+.next/
+packages/marketing/app/tailwind.css
