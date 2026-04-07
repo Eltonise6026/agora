@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { stripe } from "@/lib/stripe";
-import { db, users } from "@agora/db";
+import { db, users } from "@/lib/db";
 import { eq } from "drizzle-orm";
 
 export async function POST(req: Request) {

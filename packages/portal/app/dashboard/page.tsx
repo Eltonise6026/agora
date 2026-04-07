@@ -1,6 +1,6 @@
 import { getCurrentUser } from "@/lib/session";
 import { redirect } from "next/navigation";
-import { db, apiKeys, usageLogs } from "@agora/db";
+import { db, apiKeys, usageLogs } from "@/lib/db";
 import { eq, and, gte, sql, isNull } from "drizzle-orm";
 import { PlanBadge } from "../components/plan-badge";
 import Link from "next/link";

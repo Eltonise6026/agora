@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { db, apiKeys } from "@agora/db";
+import { db, apiKeys } from "@/lib/db";
 import { eq, and, isNull } from "drizzle-orm";
 import crypto from "crypto";
 
