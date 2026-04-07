@@ -1,12 +1,51 @@
 import { describe, it, expect, vi } from "vitest";
 
 // Mock @agora/db before importing anything that depends on it
-vi.mock("@agora/db", () => ({
-  db: {},
-  products: {},
-  productEmbeddings: {},
-  categories: {},
-}));
+vi.mock("@agora/db", () => {
+  const mockKey = [{ key: "ak_test_smoke_12345678", tier: "free", revokedAt: null }];
+
+  const smartSelect = vi.fn().mockImplementation((arg?: unknown) => {
+    if (arg && typeof arg === "object") {
+      // Count query for usage logs
+      return {
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue([{ count: 0 }]),
+        }),
+      };
+    }
+    // Key lookup query
+    return {
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue(mockKey),
+        }),
+      }),
+    };
+  });
+
+  const mockInsert = vi.fn().mockReturnValue({
+    values: vi.fn().mockReturnValue({
+      then: vi.fn().mockReturnValue({ catch: vi.fn() }),
+    }),
+  });
+
+  const mockUpdate = vi.fn().mockReturnValue({
+    set: vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) }),
+  });
+
+  return {
+    db: {
+      select: smartSelect,
+      insert: mockInsert,
+      update: mockUpdate,
+    },
+    products: {},
+    productEmbeddings: {},
+    categories: {},
+    apiKeys: {},
+    usageLogs: {},
+  };
+});
 
 import app from "../src/index.js";
 
