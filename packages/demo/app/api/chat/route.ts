@@ -54,14 +54,14 @@ const searchProductsTool = tool({
 function getModels() {
   const models = [];
 
-  // Try Gemini first (better tool calling)
-  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    models.push(google("gemini-2.0-flash"));
-  }
-
-  // Then Groq
+  // Groq first (working quota, fast inference)
   if (process.env.GROQ_API_KEY) {
     models.push(groq("llama-3.3-70b-versatile"));
+  }
+
+  // Gemini fallback
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    models.push(google("gemini-2.0-flash"));
   }
 
   return models;
