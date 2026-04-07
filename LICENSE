@@ -19,3 +19,14 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+SCOPE: This MIT License applies exclusively to the following components:
+- docs/protocol/ (Protocol specification and schemas)
+- packages/validator/ (@agora/validator)
+- packages/sdk/ (agora-sdk)
+- packages/mcp/ (agora-mcp-server)
+
+All other components in this repository are licensed under the
+Business Source License 1.1. See LICENSE-BSL for details.

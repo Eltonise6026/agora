@@ -6,7 +6,7 @@ The internet was built for human browsers. AI agents need to discover, search, a
 
 Agora is an open protocol, a commerce transaction layer, a public registry, and a complete toolkit for AI agents. Stores adopt the protocol. Agents discover, search, compare, and purchase across all of them through a single API.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: MIT + BSL](https://img.shields.io/badge/License-MIT%20%2B%20BSL-blue.svg)](LICENSE)
 [![CI](https://github.com/rbtbuilds/agora/actions/workflows/ci.yml/badge.svg)](https://github.com/rbtbuilds/agora/actions/workflows/ci.yml)
 [![npm: agora-sdk](https://img.shields.io/npm/v/agora-sdk?label=agora-sdk&color=cb3837&logo=npm)](https://www.npmjs.com/package/agora-sdk)
 [![npm: agora-mcp-server](https://img.shields.io/npm/v/agora-mcp-server?label=agora-mcp-server&color=cb3837&logo=npm)](https://www.npmjs.com/package/agora-mcp-server)
@@ -310,4 +310,7 @@ Prerequisites: Node.js 22+, PostgreSQL 16+ with pgvector.
 
 ## License
 
-MIT
+Dual licensed:
+
+- **Protocol, Validator, SDK, MCP Server** - [MIT](LICENSE). Use freely. Build on it. The protocol is an open standard.
+- **API, Platform, Portal, Crawler** - [Business Source License 1.1](LICENSE-BSL). Source available for reading, learning, and non-production use. Commercial production use requires a license. Converts to Apache 2.0 on 2030-04-07.

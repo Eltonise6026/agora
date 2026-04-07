@@ -625,7 +625,7 @@ export default function Home() {
               ))}
             </div>
             <div className="text-xs font-mono text-secondary">
-              Agora Protocol v1.0 &mdash; MIT License
+              Agora Protocol v1.0 - Protocol, SDK, and tools: MIT. Platform: BSL 1.1.
             </div>
           </div>
         </footer>
