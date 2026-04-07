@@ -69,6 +69,6 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const status = c.res.status;
   db.insert(usageLogs)
     .values({ apiKeyId: apiKey, endpoint: c.req.path, statusCode: status })
-    .then(() => db.update(apiKeys).set({ lastUsedAt: new Date(), requestCount: sql`${apiKeys.requestCount} + 1` }).where(eq(apiKeys.key, apiKey)))
+    .then(() => db.update(apiKeys).set({ lastUsedAt: new Date(), requestCount: sql`${apiKeys.requestCount} + 1` } as any).where(eq(apiKeys.key, apiKey)))
     .catch((err) => console.error("Usage log error:", err));
 };

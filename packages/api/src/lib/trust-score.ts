@@ -87,7 +87,7 @@ export async function computeTrustScore(storeId: string): Promise<TrustScore> {
   const score = protocol + dataQuality + activity;
 
   // Update the store's validation score
-  await db.update(stores).set({ validationScore: score }).where(eq(stores.id, storeId));
+  await db.update(stores).set({ validationScore: score } as any).where(eq(stores.id, storeId));
 
   return { score, breakdown: { protocol, dataQuality, activity }, details };
 }
