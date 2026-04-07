@@ -635,7 +635,7 @@ app.get("/approve/:token", async (c) => {
   const token = c.req.param("token");
 
   const result = await db.select().from(checkouts)
-    .where(eq(checkouts.approvalToken, token)).limit(1);
+    .where(eq(checkouts.approvalToken, token) as any).limit(1);
 
   if (result.length === 0) {
     return c.html(approvalErrorPage("Invalid approval link", "This approval link is not valid. It may have already been used or does not exist."), 404);
@@ -661,14 +661,14 @@ app.get("/approve/:token", async (c) => {
     price: cartItems.priceAtAdd,
     storeName: stores.name,
   }).from(cartItems)
-    .innerJoin(products, eq(cartItems.productId, products.id))
-    .leftJoin(stores, eq(cartItems.storeId, stores.id))
-    .where(eq(cartItems.cartId, checkout.cartId));
+    .innerJoin(products, eq(cartItems.productId, products.id) as any)
+    .leftJoin(stores, eq(cartItems.storeId, stores.id) as any)
+    .where(eq(cartItems.cartId, checkout.cartId) as any);
 
   let cardInfo = "Card on file";
   if (checkout.paymentMethodId) {
     const pm = await db.select().from(paymentMethods)
-      .where(eq(paymentMethods.id, checkout.paymentMethodId)).limit(1);
+      .where(eq(paymentMethods.id, checkout.paymentMethodId) as any).limit(1);
     if (pm.length > 0) cardInfo = `${pm[0].brand} ending in ${pm[0].last4}`;
   }
 
@@ -804,7 +804,7 @@ app.post("/approve/:token/confirm", async (c) => {
   const token = c.req.param("token");
 
   const result = await db.select().from(checkouts)
-    .where(eq(checkouts.approvalToken, token)).limit(1);
+    .where(eq(checkouts.approvalToken, token) as any).limit(1);
 
   if (result.length === 0) {
     return c.html(approvalErrorPage("Invalid approval link", "This approval link is not valid."), 404);
@@ -832,8 +832,8 @@ app.post("/approve/:token/confirm", async (c) => {
     price: cartItems.priceAtAdd,
     name: products.name,
   }).from(cartItems)
-    .innerJoin(products, eq(cartItems.productId, products.id))
-    .where(eq(cartItems.cartId, checkout.cartId));
+    .innerJoin(products, eq(cartItems.productId, products.id) as any)
+    .where(eq(cartItems.cartId, checkout.cartId) as any);
 
   // Group items by storeId to create one order per store
   const storeGroups = new Map<string | null, typeof items>();
@@ -865,12 +865,12 @@ app.post("/approve/:token/confirm", async (c) => {
   }
 
   await db.update(checkouts)
-    .set({ status: "completed" })
-    .where(eq(checkouts.id, checkout.id));
+    .set({ status: "completed" } as any)
+    .where(eq(checkouts.id, checkout.id) as any);
 
   await db.update(carts)
-    .set({ status: "checked_out" })
-    .where(eq(carts.id, checkout.cartId));
+    .set({ status: "checked_out" } as any)
+    .where(eq(carts.id, checkout.cartId) as any);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -922,7 +922,7 @@ app.post("/approve/:token/deny", async (c) => {
   const token = c.req.param("token");
 
   const result = await db.select().from(checkouts)
-    .where(eq(checkouts.approvalToken, token)).limit(1);
+    .where(eq(checkouts.approvalToken, token) as any).limit(1);
 
   if (result.length === 0) {
     return c.html(approvalErrorPage("Invalid approval link", "This approval link is not valid."), 404);
@@ -939,8 +939,8 @@ app.post("/approve/:token/deny", async (c) => {
   }
 
   await db.update(checkouts)
-    .set({ status: "denied" })
-    .where(eq(checkouts.id, checkout.id));
+    .set({ status: "denied" } as any)
+    .where(eq(checkouts.id, checkout.id) as any);
 
   const html = `<!DOCTYPE html>
 <html lang="en">
