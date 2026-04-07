@@ -4,42 +4,70 @@
 
 The internet was built for human browsers. AI agents need to discover, search, and transact with stores programmatically — but today's web has no standard interface for them. Agora defines that interface.
 
-Agora is an open protocol (`agora.json`), a product search API, a TypeScript SDK, an MCP server, and a validator. Stores adopt the protocol. Agents use the SDK or API to transact across all of them.
+Agora is an open protocol, a public registry, a product search API, a TypeScript SDK, an MCP server, and a validator. Stores adopt the protocol. Agents use the tools to transact across all of them.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/rbtbuilds/agora/actions/workflows/ci.yml/badge.svg)](https://github.com/rbtbuilds/agora/actions/workflows/ci.yml)
 [![npm: agora-sdk](https://img.shields.io/npm/v/agora-sdk?label=agora-sdk&color=cb3837&logo=npm)](https://www.npmjs.com/package/agora-sdk)
 [![npm: agora-mcp-server](https://img.shields.io/npm/v/agora-mcp-server?label=agora-mcp-server&color=cb3837&logo=npm)](https://www.npmjs.com/package/agora-mcp-server)
 
-[**Live API**](https://agora-ecru-chi.vercel.app) · [**Demo**](https://demo-five-coral-13.vercel.app) · [**Developer Portal**](https://portal-opal-two.vercel.app) · [Protocol](#the-protocol) · [For Agents](#for-ai-agents) · [For Stores](#for-stores) · [API Reference](#api-reference)
+[**Live API**](https://agora-ecru-chi.vercel.app) · [**API Playground**](https://agora-ecru-chi.vercel.app/playground) · [**Registry**](https://agora-ecru-chi.vercel.app/v1/registry/stats) · [**Demo**](https://demo-five-coral-13.vercel.app) · [**Portal**](https://portal-opal-two.vercel.app)
 
 ---
 
 ## The Protocol
 
-Stores declare agent-readiness by serving `agora.json` at `/.well-known/agora.json`. This file describes the store's identity, supported capabilities, and API endpoints.
+Stores declare agent-readiness by serving `agora.json` at `/.well-known/agora.json`. This manifest describes the store's identity, capabilities, authentication, rate limits, and data policy.
 
 ```json
 {
-  "agora": "1.0",
-  "name": "Example Store",
-  "type": "commerce",
-  "capabilities": ["products", "search", "cart", "checkout"],
-  "endpoints": {
-    "products": "https://example.com/api/products",
-    "search": "https://example.com/api/search"
-  }
+  "version": "1.0",
+  "store": {
+    "name": "Example Store",
+    "url": "https://example.com"
+  },
+  "capabilities": {
+    "products": "/api/agora/products",
+    "product": "/api/agora/products/{id}",
+    "search": "/api/agora/search"
+  },
+  "auth": { "type": "none" },
+  "rate_limits": { "requests_per_minute": 60 },
+  "data_policy": { "cache_ttl": 3600, "commercial_use": true }
 }
 ```
 
-Adoption is tiered. Start with a product feed. Add search, cart, and checkout as your infrastructure supports it. Agents discover what each store can do and act accordingly.
+Capabilities are tiered. Start with a product feed (`products` + `product`). Add search, inventory, cart, and checkout as your infrastructure supports it. Agents discover what each store can do and act accordingly.
 
-Full specification: [docs/protocol/spec.md](docs/protocol/spec.md)
+Full specification: [docs/protocol/spec.md](docs/protocol/spec.md) | Product schema: [docs/protocol/product-schema.md](docs/protocol/product-schema.md)
+
+---
+
+## The Registry
+
+A public, searchable directory of every protocol-compliant store. No authentication required. Agents query the registry to discover stores without knowing their URLs.
+
+```bash
+# Browse all stores
+curl https://agora-ecru-chi.vercel.app/v1/registry
+
+# Search by name
+curl https://agora-ecru-chi.vercel.app/v1/registry?q=outdoor
+
+# Filter by source
+curl https://agora-ecru-chi.vercel.app/v1/registry?source=native
+
+# Network stats
+curl https://agora-ecru-chi.vercel.app/v1/registry/stats
+```
+
+Each store listing includes analytics (weekly query count, product views) and a trust score based on protocol compliance, data quality, and agent activity.
 
 ---
 
 ## For AI Agents
 
-Three integration paths. Choose the one that fits your stack.
+Three integration paths.
 
 ### SDK
 
@@ -52,17 +80,9 @@ import { Agora } from 'agora-sdk'
 
 const agora = new Agora({ apiKey: 'ak_your_key' })
 
-// Search across all indexed stores
 const results = await agora.search('waterproof hiking boots under $100')
-
-// Get a specific product
 const product = await agora.product('agr_abc123')
-
-// Find similar products
 const similar = await agora.similar('agr_abc123')
-
-// Browse categories
-const categories = await agora.categories()
 ```
 
 Built-in response caching. Full TypeScript types. Zero dependencies.
@@ -75,101 +95,81 @@ For agents that support the [Model Context Protocol](https://modelcontextprotoco
 npm install agora-mcp-server
 ```
 
-Add to your MCP configuration:
-
 ```json
 {
   "mcpServers": {
     "agora": {
       "command": "npx",
       "args": ["agora-mcp-server"],
-      "env": {
-        "AGORA_API_KEY": "ak_your_key"
-      }
+      "env": { "AGORA_API_KEY": "ak_your_key" }
     }
   }
 }
 ```
 
-Exposes three tools: `agora_search`, `agora_product`, `agora_similar`.
-
 ### REST API
 
-Direct HTTP access. No SDK required.
+Direct HTTP access with Bearer token authentication.
 
 ```bash
 curl https://agora-ecru-chi.vercel.app/v1/products/search?q=running+shoes \
   -H "Authorization: Bearer ak_your_key"
 ```
 
+Interactive playground: [agora-ecru-chi.vercel.app/playground](https://agora-ecru-chi.vercel.app/playground)
+
 ---
 
 ## For Stores
 
-Adopt the protocol in three steps.
+### Option 1: Shopify Adapter (zero config)
 
-**1. Create your `agora.json`**
-
-Declare your store's capabilities and endpoints. Start minimal — a product feed is enough to get listed.
-
-**2. Serve it at the standard path**
-
-```
-https://yourdomain.com/.well-known/agora.json
-```
-
-**3. Validate**
+Any Shopify store can join the protocol instantly. No code changes. One API call.
 
 ```bash
-npx @agora/validator https://yourdomain.com
+curl -X POST https://agora-ecru-chi.vercel.app/v1/adapter/shopify \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://your-shopify-store.com"}'
 ```
 
-The validator checks your `agora.json` against the protocol spec and reports any issues.
+Agora generates your `agora.json`, proxies your product feed in protocol format, and registers your store in the public registry.
+
+### Option 2: Native Implementation
+
+Implement the protocol directly for full control.
+
+1. Create your `agora.json` — declare capabilities and endpoints
+2. Serve it at `/.well-known/agora.json`
+3. Implement the required endpoints (`products` and `product`)
+4. Validate: `npx @agora/validator https://yourdomain.com`
+5. Register: `POST /v1/stores/register` with your URL
 
 Getting started guide: [docs/protocol/getting-started.md](docs/protocol/getting-started.md)
+
+### What Stores Get
+
+- **Listed in the public registry** — agents discover your store automatically
+- **Analytics** — see how agents interact with your products (queries, views, trends)
+- **Trust score** — protocol compliance rating that agents use to prioritize stores
+- **Webhooks** — real-time notifications when agents search or view your products
+- **Cross-store visibility** — your products appear in comparison results across the network
 
 ---
 
 ## Architecture
 
-Monorepo managed by [Turborepo](https://turbo.build/).
+Monorepo managed by [Turborepo](https://turbo.build/). CI via GitHub Actions.
 
 | Package | Description |
 |---------|-------------|
-| `packages/validator` | Protocol validator — CLI and library |
-| `packages/sdk` | TypeScript SDK for agent developers |
-| `packages/mcp` | MCP server for AI agent tool use |
-| `packages/api` | API server (Hono) |
-| `packages/db` | Database schema (Drizzle + PostgreSQL) |
-| `packages/portal` | Developer portal (Next.js) |
-| `packages/demo` | Demo application (Next.js) |
-| `crawler/` | Data ingestion (Scrapy + Playwright) |
-
----
-
-## Quick Start
-
-```bash
-# Clone and install
-git clone https://github.com/rbtbuilds/agora.git
-cd agora
-npm install
-
-# Configure environment
-cp .env.example .env
-# Set DATABASE_URL and OPENAI_API_KEY in .env
-
-# Run database migrations
-cd packages/db
-npx drizzle-kit generate
-npx drizzle-kit migrate
-
-# Start development servers
-cd ../..
-npm run dev
-```
-
-Prerequisites: Node.js 22+, PostgreSQL 16+ with [pgvector](https://github.com/pgvector/pgvector), Python 3.12+ with [uv](https://docs.astral.sh/uv/), OpenAI API key.
+| `packages/validator` | Protocol validator — CLI and library (`@agora/validator`) |
+| `packages/sdk` | TypeScript SDK for agent developers (`agora-sdk`) |
+| `packages/mcp` | MCP server for AI agent tool use (`agora-mcp-server`) |
+| `packages/api` | API server (Hono on Vercel) |
+| `packages/db` | Database schema and migrations (Drizzle + PostgreSQL + pgvector) |
+| `packages/portal` | Developer portal with auth and billing (Next.js) |
+| `packages/demo` | Demo application with AI chat agent (Next.js) |
+| `crawler/` | Data ingestion — Shopify bulk crawler, Amazon spider (Scrapy + Playwright) |
 
 ---
 
@@ -177,28 +177,87 @@ Prerequisites: Node.js 22+, PostgreSQL 16+ with [pgvector](https://github.com/pg
 
 Base URL: `https://agora-ecru-chi.vercel.app`
 
-All endpoints require `Authorization: Bearer ak_...` except where noted.
+OpenAPI spec: [`/openapi.json`](https://agora-ecru-chi.vercel.app/openapi.json) | Playground: [`/playground`](https://agora-ecru-chi.vercel.app/playground)
+
+### Public (no auth)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/.well-known/agora.json` | Protocol descriptor for this API |
-| `GET` | `/v1/products/search?q=...` | Search products by keyword or natural language |
-| `GET` | `/v1/products/:id` | Get product details by ID |
-| `GET` | `/v1/products/:id/similar` | Find similar products |
-| `GET` | `/v1/categories` | List product categories |
+| `GET` | `/.well-known/agora.json` | Protocol manifest |
+| `GET` | `/openapi.json` | OpenAPI 3.1 specification |
+| `GET` | `/playground` | Interactive API playground |
+| `GET` | `/v1/registry` | Browse stores (search, filter, sort) |
+| `GET` | `/v1/registry/stats` | Network statistics |
+| `GET` | `/v1/registry/:id` | Store detail with analytics |
+| `GET` | `/v1/registry/:id/trust-score` | Protocol compliance score |
+| `GET` | `/v1/registry/:id/analytics` | Weekly analytics breakdown |
+| `GET` | `/v1/adapter/shopify/:id/agora.json` | Adapted store manifest |
+| `GET` | `/v1/adapter/shopify/:id/products` | Adapted product feed |
+
+### Authenticated (Bearer token)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/v1/products/search?q=...` | Search products |
+| `GET` | `/v1/products/:id` | Product detail |
+| `GET` | `/v1/products/:id/similar` | Similar products |
+| `GET` | `/v1/products/:id/compare` | Cross-store matches |
+| `GET` | `/v1/categories` | Product categories |
+| `POST` | `/v1/stores/register` | Register a store |
+| `POST` | `/v1/stores/:id/webhooks` | Create webhook |
+| `GET` | `/v1/stores/:id/webhooks` | List webhooks |
+| `DELETE` | `/v1/stores/:id/webhooks/:wid` | Delete webhook |
+| `POST` | `/v1/adapter/shopify` | Adapt a Shopify store |
+
+---
+
+## Quick Start
+
+```bash
+git clone https://github.com/rbtbuilds/agora.git
+cd agora
+npm install
+
+# Configure environment
+cp .env.example .env
+# Set DATABASE_URL in .env
+
+# Run database migrations
+cd packages/db && npx drizzle-kit migrate && cd ../..
+
+# Build all packages
+npm run build
+
+# Run tests
+npm run test
+
+# Start development
+npm run dev
+```
+
+Prerequisites: Node.js 22+, PostgreSQL 16+ with pgvector.
 
 ---
 
 ## Status
 
-**Current:** 8,000+ products indexed across 12 stores. Protocol v1.0.
+**22,000+ products** indexed across **52 stores**. Protocol v1.0.
+
+| Metric | Value |
+|--------|-------|
+| Products | 22,562 |
+| Stores | 52 |
+| Shopify stores | 52 |
+| Protocol version | 1.0 |
+| API endpoints | 20 |
+| Test coverage | 50 tests |
 
 **Roadmap:**
-- 50,000+ products across 100+ stores
-- Self-serve store registration via the developer portal
 - Semantic search with pgvector embeddings
-- Real-time price and availability tracking
+- Marketing site and custom domains
 - Cart and checkout protocol extensions
+- Stripe live billing
+- 100k+ products across 200+ stores
 
 ---
 
