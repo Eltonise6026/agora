@@ -8,21 +8,21 @@
     "start": "next start"
   },
   "dependencies": {
-    "postgres": "^3.4",
+    "drizzle-orm": "^0.45",
     "next": "^15",
-    "next-auth": "5.0.0-beta.25",
+    "next-auth": "^5.0.0-beta.30",
+    "postgres": "^3.4",
     "react": "^19",
     "react-dom": "^19",
-    "stripe": "^17",
-    "drizzle-orm": "^0.45"
+    "stripe": "^17"
   },
   "devDependencies": {
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5.7",
-    "tailwindcss": "^3",
+    "autoprefixer": "^10",
     "postcss": "^8",
-    "autoprefixer": "^10"
+    "tailwindcss": "^3",
+    "typescript": "^5.7"
   }
 }
