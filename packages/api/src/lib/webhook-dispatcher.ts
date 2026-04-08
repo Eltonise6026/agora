@@ -35,7 +35,7 @@ export async function dispatchWebhooks(event: WebhookEvent): Promise<void> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Agora-Signature": signature,
+        "X-Agora-Signature": `sha256=${signature}`,
         "X-Agora-Event": event.event,
       },
       body: payload,

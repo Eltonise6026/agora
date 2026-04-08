@@ -152,13 +152,14 @@ commerceRouter.post("/cart/:id/items", async (c) => {
 
 // DELETE /cart/:id/items/:itemId — Remove item from cart
 commerceRouter.delete("/cart/:id/items/:itemId", async (c) => {
+  const cartId = c.req.param("id");
   const itemId = parseInt(c.req.param("itemId"), 10);
 
   if (isNaN(itemId)) {
     return c.json({ error: { code: "BAD_REQUEST", message: "Invalid itemId" } }, 400);
   }
 
-  await db.delete(cartItems).where(eq(cartItems.id, itemId));
+  await db.delete(cartItems).where(and(eq(cartItems.id, itemId), eq(cartItems.cartId, cartId)) as any);
 
   return c.json({ data: { deleted: true } });
 });
@@ -181,12 +182,17 @@ commerceRouter.post("/checkout", async (c) => {
     return c.json({ error: { code: "BAD_REQUEST", message: "Invalid JSON body" } }, 400);
   }
 
-  if (!body.cartId || !body.consumerId) {
+  if (!body.cartId || !body.consumerId || typeof body.consumerId !== "string" || body.consumerId.trim() === "") {
     return c.json(
       { error: { code: "BAD_REQUEST", message: "Fields 'cartId' and 'consumerId' are required" } },
       400
     );
   }
+
+  // SECURITY TODO: consumerId is currently self-asserted. A full fix requires
+  // linking API keys to consumer identities so that callers can only act on
+  // behalf of consumers they own. Until then, any valid API key can create
+  // checkouts for any consumerId.
 
   // Verify cart exists and belongs to consumer
   const cartRows = await db
@@ -257,7 +263,7 @@ commerceRouter.post("/checkout", async (c) => {
 
   if (approvalMode === "async") {
     // TODO: send SMS/email with approval link
-    console.log(`[checkout] async approval requested for ${checkoutId}, token: ${approvalToken}`);
+    console.log(`[checkout] async approval requested for ${checkoutId}`);
   }
 
   return c.json({
@@ -306,8 +312,10 @@ commerceRouter.post("/checkout/:id/approve", async (c) => {
     );
   }
 
-  if (checkout.approvalToken !== body.approvalToken) {
-    return c.json({ error: { code: "UNAUTHORIZED", message: "Invalid approval token" } }, 401);
+  const approveTokenMatch = checkout.approvalToken.length === body.approvalToken.length &&
+    crypto.timingSafeEqual(Buffer.from(checkout.approvalToken), Buffer.from(body.approvalToken));
+  if (!approveTokenMatch) {
+    return c.json({ error: { code: "FORBIDDEN", message: "Invalid approval token" } }, 403);
   }
 
   if (new Date() > checkout.expiresAt) {
@@ -453,8 +461,14 @@ commerceRouter.post("/checkout/:id/deny", async (c) => {
     );
   }
 
-  if (checkout.approvalToken !== body.approvalToken) {
-    return c.json({ error: { code: "UNAUTHORIZED", message: "Invalid approval token" } }, 401);
+  const denyTokenMatch = checkout.approvalToken.length === body.approvalToken.length &&
+    crypto.timingSafeEqual(Buffer.from(checkout.approvalToken), Buffer.from(body.approvalToken));
+  if (!denyTokenMatch) {
+    return c.json({ error: { code: "FORBIDDEN", message: "Invalid approval token" } }, 403);
+  }
+
+  if (new Date() > checkout.expiresAt) {
+    return c.json({ error: { code: "GONE", message: "Checkout has expired" } }, 410);
   }
 
   await db
@@ -479,7 +493,8 @@ commerceRouter.get("/checkout/:id", async (c) => {
     return c.json({ error: { code: "NOT_FOUND", message: `Checkout ${checkoutId} not found` } }, 404);
   }
 
-  return c.json({ data: checkoutRows[0] });
+  const { approvalToken: _token, ...safeCheckout } = checkoutRows[0];
+  return c.json({ data: safeCheckout });
 });
 
 // ---------------------------------------------------------------------------

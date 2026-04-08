@@ -50,6 +50,13 @@ productsRouter.get("/search", async (c) => {
     );
   }
 
+  if (query.q.length > 500) {
+    return c.json(
+      { error: { code: "BAD_REQUEST", message: "Query too long (max 500 characters)" } },
+      400
+    );
+  }
+
   const { results, total, page, perPage } = await searchProducts(query);
 
   return c.json({

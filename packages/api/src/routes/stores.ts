@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { db, stores, webhooks } from "@agora/db";
 import { eq, desc, sql } from "drizzle-orm";
 import crypto from "node:crypto";
+import { validateExternalUrl } from "../lib/url-validator.js";
 
 const storesRouter = new Hono();
 
@@ -27,6 +28,11 @@ storesRouter.post("/register", async (c) => {
       { error: { code: "BAD_REQUEST", message: "Field 'url' is required" } },
       400
     );
+  }
+
+  const urlCheck = validateExternalUrl(body.url);
+  if (!urlCheck.valid) {
+    return c.json({ error: { code: "BAD_REQUEST", message: urlCheck.error } }, 400);
   }
 
   const storeUrl = body.url.replace(/\/$/, "");
@@ -150,7 +156,12 @@ storesRouter.post("/:storeId/webhooks", async (c) => {
     return c.json({ error: { code: "BAD_REQUEST", message: "url and events are required" } }, 400);
   }
 
-  const validEvents = ["product.searched", "product.viewed", "store.registered"];
+  const webhookUrlCheck = validateExternalUrl(body.url);
+  if (!webhookUrlCheck.valid) {
+    return c.json({ error: { code: "BAD_REQUEST", message: webhookUrlCheck.error } }, 400);
+  }
+
+  const validEvents = ["product.searched", "product.viewed", "store.registered", "order.created", "checkout.approved", "checkout.denied"];
   const invalidEvents = body.events.filter((e) => !validEvents.includes(e));
   if (invalidEvents.length > 0) {
     return c.json({ error: { code: "BAD_REQUEST", message: `Invalid events: ${invalidEvents.join(", ")}` } }, 400);

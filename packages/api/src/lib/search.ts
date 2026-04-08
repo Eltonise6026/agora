@@ -45,10 +45,13 @@ async function keywordSearch(
   offset: number,
   page: number
 ) {
+  // Escape SQL LIKE metacharacters to prevent injection
+  const sanitizedQ = q.replace(/[%_\\]/g, "\\$&");
+
   // Match against name and description, but rank name matches higher
   const searchCondition = or(
-    ilike(products.name, `%${q}%`),
-    ilike(products.description, `%${q}%`)
+    ilike(products.name, `%${sanitizedQ}%`),
+    ilike(products.description, `%${sanitizedQ}%`)
   );
 
   const where =
@@ -58,8 +61,8 @@ async function keywordSearch(
 
   // Relevance score: name match = 2, description-only match = 1
   const relevance = sql<number>`(
-    CASE WHEN lower(${products.name}) LIKE lower(${"%" + q + "%"}) THEN 2 ELSE 0 END +
-    CASE WHEN lower(${products.description}) LIKE lower(${"%" + q + "%"}) THEN 1 ELSE 0 END
+    CASE WHEN lower(${products.name}) LIKE lower(${"%" + sanitizedQ + "%"}) THEN 2 ELSE 0 END +
+    CASE WHEN lower(${products.description}) LIKE lower(${"%" + sanitizedQ + "%"}) THEN 1 ELSE 0 END
   )`;
 
   const results = await db

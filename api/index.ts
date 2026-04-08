@@ -2,6 +2,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { bodyLimit } from "hono/body-limit";
 import { authMiddleware } from "../packages/api/src/middleware/auth.js";
 import { analyticsMiddleware } from "../packages/api/src/middleware/analytics.js";
 import { productsRouter } from "../packages/api/src/routes/products.js";
@@ -18,6 +19,7 @@ import crypto from "crypto";
 const app = new Hono();
 
 app.use("*", cors());
+app.use("*", bodyLimit({ maxSize: 100 * 1024 })); // 100KB
 
 const openapiSpec = {
   openapi: "3.1.0",

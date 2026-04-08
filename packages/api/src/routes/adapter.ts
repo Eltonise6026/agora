@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { db, stores } from "@agora/db";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
+import { validateExternalUrl } from "../lib/url-validator.js";
 
 const adapterRouter = new Hono();
 
@@ -20,6 +21,11 @@ adapterRouter.post("/shopify", async (c) => {
 
   if (!body.url) {
     return c.json({ error: { code: "BAD_REQUEST", message: "url is required" } }, 400);
+  }
+
+  const urlCheck = validateExternalUrl(body.url);
+  if (!urlCheck.valid) {
+    return c.json({ error: { code: "BAD_REQUEST", message: urlCheck.error } }, 400);
   }
 
   const storeUrl = body.url.replace(/\/$/, "");
@@ -52,9 +58,10 @@ adapterRouter.post("/shopify", async (c) => {
       }, 400);
     }
   } catch (err) {
+    console.error("Adapter upstream error:", err);
     return c.json({
-      error: { code: "BAD_REQUEST", message: `Could not reach store: ${(err as Error).message}` },
-    }, 400);
+      error: { code: "UPSTREAM_ERROR", message: "Could not reach the store" },
+    }, 502);
   }
 
   const apiBase = "https://agora-ecru-chi.vercel.app";
@@ -181,7 +188,8 @@ adapterRouter.get("/shopify/:storeId/products", async (c) => {
       meta: { total: products.length, page, perPage: limit },
     });
   } catch (err) {
-    return c.json({ error: { code: "UPSTREAM_ERROR", message: (err as Error).message } }, 502);
+    console.error("Adapter upstream error:", err);
+    return c.json({ error: { code: "UPSTREAM_ERROR", message: "Could not reach the store" } }, 502);
   }
 });
 
@@ -210,7 +218,8 @@ adapterRouter.get("/shopify/:storeId/products/:handle", async (c) => {
 
     return c.json({ data: product });
   } catch (err) {
-    return c.json({ error: { code: "UPSTREAM_ERROR", message: (err as Error).message } }, 502);
+    console.error("Adapter upstream error:", err);
+    return c.json({ error: { code: "UPSTREAM_ERROR", message: "Could not reach the store" } }, 502);
   }
 });
 
