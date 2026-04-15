@@ -4,6 +4,10 @@ import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
 import { validateExternalUrl, safeFetch } from "../lib/url-validator.js";
 
+// Public router — no auth required (serves the manifest for external consumers)
+const adapterPublicRouter = new Hono();
+
+// Protected router — auth required
 const adapterRouter = new Hono();
 
 function generateStoreId(url: string): string {
@@ -128,8 +132,8 @@ adapterRouter.post("/shopify", async (c) => {
   }, 201);
 });
 
-// GET /v1/adapter/shopify/:storeId/agora.json — Serve generated manifest
-adapterRouter.get("/shopify/:storeId/agora.json", async (c) => {
+// GET /v1/adapter/shopify/:storeId/agora.json — Serve generated manifest (public, no auth)
+adapterPublicRouter.get("/shopify/:storeId/agora.json", async (c) => {
   const storeId = c.req.param("storeId");
   const store = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
 
@@ -276,4 +280,4 @@ function normalizeShopifyProduct(p: any, storeUrl: string) {
   };
 }
 
-export { adapterRouter };
+export { adapterRouter, adapterPublicRouter };

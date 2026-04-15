@@ -6,7 +6,7 @@ import { productsRouter } from "./routes/products.js";
 import { categoriesRouter } from "./routes/categories.js";
 import { storesRouter } from "./routes/stores.js";
 import { registryRouter } from "./routes/registry.js";
-import { adapterRouter } from "./routes/adapter.js";
+import { adapterRouter, adapterPublicRouter } from "./routes/adapter.js";
 import { commerceRouter } from "./routes/commerce.js";
 
 const app = new Hono();
@@ -17,8 +17,8 @@ app.use("*", bodyLimit({ maxSize: 100 * 1024 })); // 100KB
 // Public registry routes — mounted BEFORE auth middleware
 app.route("/v1/registry", registryRouter);
 
-// Public adapter routes — mounted BEFORE auth middleware
-app.route("/v1/adapter", adapterRouter);
+// Public adapter routes — agora.json manifest only (no auth required)
+app.route("/v1/adapter", adapterPublicRouter);
 
 app.use("/v1/*", authMiddleware);
 
@@ -26,6 +26,8 @@ app.get("/health", (c) => c.json({ status: "ok" }));
 app.route("/v1/products", productsRouter);
 app.route("/v1/categories", categoriesRouter);
 app.route("/v1/stores", storesRouter);
+// Protected adapter routes — registration + proxy (auth required)
+app.route("/v1/adapter", adapterRouter);
 app.route("/v1", commerceRouter);
 
 export default app;

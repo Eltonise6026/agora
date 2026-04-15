@@ -63,6 +63,7 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   }
 
   c.set("apiKey", apiKey);
+  c.set("userId", key.userId);
   await next();
 
   // Log usage after response (non-blocking)
