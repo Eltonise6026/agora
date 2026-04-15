@@ -8,10 +8,48 @@ const TIER_LIMITS: Record<string, number> = {
   enterprise: 999999,
 };
 
+// In-memory auth failure tracker (per IP, resets on cold start)
+const authFailures = new Map<string, { count: number; resetAt: number }>();
+const AUTH_FAILURE_LIMIT = 10;
+const AUTH_FAILURE_WINDOW_MS = 60_000; // 1 minute
+
+function checkAuthRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const record = authFailures.get(ip);
+
+  if (!record || now > record.resetAt) {
+    return true; // no record or window expired
+  }
+
+  return record.count < AUTH_FAILURE_LIMIT;
+}
+
+function recordAuthFailure(ip: string): void {
+  const now = Date.now();
+  const record = authFailures.get(ip);
+
+  if (!record || now > record.resetAt) {
+    authFailures.set(ip, { count: 1, resetAt: now + AUTH_FAILURE_WINDOW_MS });
+  } else {
+    record.count++;
+  }
+}
+
 export const authMiddleware: MiddlewareHandler = async (c, next) => {
+  const ip = c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+
+  if (!checkAuthRateLimit(ip)) {
+    return c.json(
+      { error: { code: "RATE_LIMITED", message: "Too many failed authentication attempts" } },
+      429
+    );
+  }
+
   const authHeader = c.req.header("Authorization");
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    recordAuthFailure(ip);
+    console.warn(`[auth] failure from ${ip}: missing_header`, { endpoint: c.req.path, keyPrefix: "none" });
     return c.json(
       { error: { code: "UNAUTHORIZED", message: "Missing API key" } },
       401
@@ -21,6 +59,8 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
   const apiKey = authHeader.slice(7);
 
   if (!apiKey.startsWith("ak_")) {
+    recordAuthFailure(ip);
+    console.warn(`[auth] failure from ${ip}: invalid_format`, { endpoint: c.req.path, keyPrefix: apiKey.slice(0, 7) });
     return c.json(
       { error: { code: "UNAUTHORIZED", message: "Invalid API key format" } },
       401
@@ -35,6 +75,8 @@ export const authMiddleware: MiddlewareHandler = async (c, next) => {
     .limit(1);
 
   if (keyResult.length === 0) {
+    recordAuthFailure(ip);
+    console.warn(`[auth] failure from ${ip}: invalid_or_revoked_key`, { endpoint: c.req.path, keyPrefix: apiKey.slice(0, 7) });
     return c.json(
       { error: { code: "UNAUTHORIZED", message: "Invalid or revoked API key" } },
       401
