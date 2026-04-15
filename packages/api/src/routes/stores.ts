@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { db, stores, webhooks } from "@agora/db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and } from "drizzle-orm";
 import crypto from "node:crypto";
 import { validateExternalUrl, safeFetch } from "../lib/url-validator.js";
 
@@ -13,6 +13,7 @@ function generateStoreId(url: string): string {
 
 // POST /v1/stores/register
 storesRouter.post("/register", async (c) => {
+  const ownerId = c.get("userId") as string;
   let body: { url?: string };
   try {
     body = await c.req.json();
@@ -92,6 +93,7 @@ storesRouter.post("/register", async (c) => {
     productCount: 0,
     validationScore,
     status: "active",
+    ownerId,
   };
 
   await db.insert(stores).values(newStore);
@@ -144,7 +146,19 @@ storesRouter.get("/:id", async (c) => {
 
 // POST /v1/stores/:storeId/webhooks
 storesRouter.post("/:storeId/webhooks", async (c) => {
+  const ownerId = c.get("userId") as string;
   const storeId = c.req.param("storeId");
+
+  // Ownership check: if the store has an owner, only that owner can add webhooks
+  const storeResult = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
+  if (storeResult.length === 0) {
+    return c.json({ error: { code: "NOT_FOUND", message: `Store ${storeId} not found` } }, 404);
+  }
+  const store = storeResult[0];
+  if (store.ownerId !== null && store.ownerId !== ownerId) {
+    return c.json({ error: { code: "FORBIDDEN", message: "You do not own this store" } }, 403);
+  }
+
   let body: { url?: string; events?: string[] };
   try {
     body = await c.req.json();
@@ -176,18 +190,23 @@ storesRouter.post("/:storeId/webhooks", async (c) => {
     url: body.url,
     events: body.events,
     secret,
+    ownerId,
   });
 
   return c.json({
-    data: { id, storeId, url: body.url, events: body.events, secret, active: 1 },
+    data: { id, storeId, url: body.url, events: body.events, secret, active: 1, ownerId },
     meta: { message: "Save the secret — it won't be shown again" },
   }, 201);
 });
 
 // GET /v1/stores/:storeId/webhooks
 storesRouter.get("/:storeId/webhooks", async (c) => {
+  const ownerId = c.get("userId") as string;
   const storeId = c.req.param("storeId");
-  const hooks = await db.select().from(webhooks).where(eq(webhooks.storeId, storeId));
+  const hooks = await db
+    .select()
+    .from(webhooks)
+    .where(and(eq(webhooks.storeId, storeId), eq(webhooks.ownerId, ownerId)));
   return c.json({
     data: hooks.map((h) => ({ ...h, secret: "whsec_****" })),
   });
@@ -195,8 +214,24 @@ storesRouter.get("/:storeId/webhooks", async (c) => {
 
 // DELETE /v1/stores/:storeId/webhooks/:id
 storesRouter.delete("/:storeId/webhooks/:webhookId", async (c) => {
+  const ownerId = c.get("userId") as string;
+  const storeId = c.req.param("storeId");
   const webhookId = c.req.param("webhookId");
-  await db.delete(webhooks).where(eq(webhooks.id, webhookId));
+
+  const existing = await db
+    .select()
+    .from(webhooks)
+    .where(and(eq(webhooks.id, webhookId), eq(webhooks.storeId, storeId)))
+    .limit(1);
+
+  if (existing.length === 0) {
+    return c.json({ error: { code: "NOT_FOUND", message: `Webhook ${webhookId} not found` } }, 404);
+  }
+  if (existing[0].ownerId !== ownerId) {
+    return c.json({ error: { code: "FORBIDDEN", message: "You do not own this webhook" } }, 403);
+  }
+
+  await db.delete(webhooks).where(and(eq(webhooks.id, webhookId), eq(webhooks.storeId, storeId)));
   return c.json({ data: { deleted: true } });
 });
 

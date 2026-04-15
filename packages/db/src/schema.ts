@@ -34,11 +34,13 @@ export const stores = pgTable(
     validationScore: integer("validation_score"),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
     status: varchar("status", { length: 20 }).notNull().default("active"),
+    ownerId: text("owner_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_stores_source").on(table.source),
     index("idx_stores_status").on(table.status),
+    index("idx_stores_owner").on(table.ownerId),
   ]
 );
 
@@ -219,10 +221,12 @@ export const webhooks = pgTable(
     events: jsonb("events").$type<string[]>().notNull(), // ["product.searched", "product.viewed"]
     secret: text("secret").notNull(), // for HMAC signature verification
     active: integer("active").notNull().default(1), // 1 = active, 0 = paused
+    ownerId: text("owner_id").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("idx_webhooks_store").on(table.storeId),
+    index("idx_webhooks_owner").on(table.ownerId),
   ]
 );
 
