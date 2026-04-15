@@ -24,7 +24,11 @@ export async function GET() {
     })
     .from(apiKeys)
     .where(eq(apiKeys.userId, (session as any).userId));
-  return NextResponse.json({ keys });
+  const masked = keys.map((k) => ({
+    ...k,
+    key: `${k.key.slice(0, 7)}...${k.key.slice(-4)}`,
+  }));
+  return NextResponse.json({ keys: masked });
 }
 
 export async function POST(req: Request) {
